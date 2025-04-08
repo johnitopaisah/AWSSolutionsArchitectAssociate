@@ -18,19 +18,15 @@ This lab provides a structured guide to managing AWS S3 buckets and objects usin
 
 ## 📁 Step 1: Set Up Environment
 
-### 1.1 Clone/Explore Lab Reference
 
-Check the reference GitHub repo:  
-🔗 https://github.com/ExamProCo/AWS-Examples/tree/main/s3/bash-scripts
-
-### 1.2 Create Directories
+### 1.1 Create Directories
 
 ```bash
 mkdir -p S3/bash-scripts
 cd S3/bash-scripts
 ```
 
-### 1.3 Make Scripts Executable
+### 1.2 Make Scripts Executable
 
 ```bash
 chmod u+x *.sh
@@ -80,7 +76,7 @@ aws s3api delete-bucket --bucket "$BUCKET_NAME"
 ### 3.1 `generate_files.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 OUTPUT_DIR="./temp"
 mkdir -p $OUTPUT_DIR
@@ -127,7 +123,7 @@ aws s3api list-objects --bucket "$BUCKET_NAME" --query 'Contents[].{Key: Key, Si
 ### 4.2 `delete_objects.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 if [ -z "$1" ]; then
     echo "No bucket name provided. Usage: $0 bucket-name"
@@ -153,14 +149,14 @@ rm delete.json
 ### 5.1 `getnewestbucket.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 aws s3api list-buckets --query 'Buckets | sort_by(@, &CreationDate) | [-1:].Name' --output text
 ```
 
 ### 5.2 `list_buckets.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 aws s3 ls
 ```
 
