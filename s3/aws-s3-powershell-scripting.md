@@ -1,195 +1,175 @@
-# ☁️ AWS S3 Bash Scripting Lab Notes
 
-This lab provides a structured guide to managing AWS S3 buckets and objects using **Bash scripts** and the **AWS CLI**. You'll create, list, delete buckets and objects, and sync files — all programmatically.
+# ☁️ AWS S3 PowerShell Scripting Lab Notes
 
----
-
-## ✅ Prerequisites
-
-- AWS CLI installed and configured (`aws configure`)
-- GitPod or any Bash-enabled environment
-- `jq` installed (for JSON processing):  
-  ```bash
-  sudo apt-get install jq
-  ```
-- Basic knowledge of Bash scripting
+This lab guides you through creating and managing AWS S3 buckets and objects using **PowerShell scripting** within a **Gitpod environment**.
 
 ---
 
-## 📁 Step 1: Set Up Environment
+## ✅ Objective
 
-
-### 1.1 Create Directories
-
-```bash
-mkdir -p S3/bash-scripts
-cd S3/bash-scripts
-```
-
-### 1.2 Make Scripts Executable
-
-```bash
-chmod u+x *.sh
-```
+To automate AWS S3 operations using PowerShell scripts in a cloud-based IDE.
 
 ---
 
-## 🪣 Step 2: Create and Delete Buckets
+## 📋 Prerequisites
 
-### 2.1 `create_bucket.sh`
+- AWS CLI configured with appropriate credentials
+- Gitpod account and workspace setup
+- Basic knowledge of PowerShell and AWS S3
 
-```bash
-#!/usr/bin/env bash
-set -e
-if [ -z "$1" ]; then
-    echo "No bucket name provided. Usage: $0 bucket-name"
-    exit 1
-fi
-BUCKET_NAME=$1
-REGION=${2:-us-east-1}
+---
 
-if [ "$REGION" == "us-east-1" ]; then
-    aws s3api create-bucket --bucket "$BUCKET_NAME"
-else
-    aws s3api create-bucket --bucket "$BUCKET_NAME" \
-    --create-bucket-configuration LocationConstraint="$REGION"
-fi
-```
+## 🛠️ Step 1: Install PowerShell in Gitpod
 
-### 2.2 `delete_bucket.sh`
+### 1.1 Open Gitpod Workspace
+
+Start your Gitpod workspace as usual.
+
+### 1.2 Install PowerShell
 
 ```bash
-#!/usr/bin/env bash
-set -e
-if [ -z "$1" ]; then
-    echo "No bucket name provided. Usage: $0 bucket-name"
-    exit 1
-fi
-BUCKET_NAME=$1
-aws s3api delete-bucket --bucket "$BUCKET_NAME"
+# Update package lists
+sudo apt-get update
+
+# Install prerequisites
+sudo apt-get install -y wget apt-transport-https software-properties-common
+
+# Import the Microsoft GPG key
+wget -q "https://packages.microsoft.com/keys/microsoft.asc" -O- | sudo apt-key add -
+
+# Register the Microsoft Ubuntu repository
+sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+
+# Install PowerShell
+sudo apt-get update
+sudo apt-get install -y powershell
+
+# Start PowerShell
+pwsh
 ```
 
 ---
 
-## 📂 Step 3: Sync Files to Bucket
+## 🔧 Step 2: Install AWS Tools for PowerShell
 
-### 3.1 `generate_files.sh`
+### 2.1 Install AWS Tools Module
 
-```bash
-#!/usr/bin/env bash
-set -e
-OUTPUT_DIR="./temp"
-mkdir -p $OUTPUT_DIR
-rm -rf $OUTPUT_DIR/*
-NUM_FILES=$((RANDOM % 6 + 5))
-for i in $(seq 1 $NUM_FILES); do
-    FILE_NAME="$OUTPUT_DIR/file_$i.txt"
-    head -c 100 </dev/urandom > $FILE_NAME
-    echo "Created $FILE_NAME"
-done
+```powershell
+# Install AWS Tools for PowerShell
+Install-Module -Name AWSPowerShell.NetCore -Scope CurrentUser -Force -AllowClobber
+
+# Verify the installation
+Get-Module -ListAvailable AWSPowerShell.NetCore
 ```
 
-### 3.2 `sync_files.sh`
+### 2.2 Configure AWS CLI
 
-```bash
-#!/usr/bin/env bash
-set -e
-if [ -z "$1" ]; then
-    echo "No bucket name provided. Usage: $0 bucket-name"
-    exit 1
-fi
-BUCKET_NAME=$1
-FILE_PREFIX=${2:-files}
-aws s3 sync ./temp s3://$BUCKET_NAME/$FILE_PREFIX
+```powershell
+# Configure AWS credentials
+Set-AWSCredential -AccessKey <YourAccessKey> -SecretKey <YourSecretKey> -StoreAs default
 ```
 
 ---
 
-## 📋 Step 4: List and Delete Objects
+## 📂 Step 3: Create PowerShell Script for AWS S3
 
-### 4.1 `list_objects.sh`
+### 3.1 Create PowerShell Script File
 
-```bash
-#!/usr/bin/env bash
-set -e
-if [ -z "$1" ]; then
-    echo "No bucket name provided. Usage: $0 bucket-name"
-    exit 1
-fi
-BUCKET_NAME=$1
-aws s3api list-objects --bucket "$BUCKET_NAME" --query 'Contents[].{Key: Key, Size: Size}'
+```powershell
+# Create a new directory for scripts
+mkdir PowerShellScripts
+
+# Create a new script file
+New-Item -Path "./PowerShellScripts/S3Script.ps1" -ItemType "file"
 ```
 
-### 4.2 `delete_objects.sh`
+### 3.2 Edit the Script
 
-```bash
-#!/usr/bin/env bash
-set -e
-if [ -z "$1" ]; then
-    echo "No bucket name provided. Usage: $0 bucket-name"
-    exit 1
-fi
-BUCKET_NAME=$1
-OBJECTS=$(aws s3api list-objects --bucket "$BUCKET_NAME" --query 'Contents[].{Key: Key}' --output json)
-if [ "$OBJECTS" == "null" ]; then
-    echo "Bucket is empty"
-    exit 0
-fi
-echo '{"Objects":' > delete.json
-echo $OBJECTS | jq '.' >> delete.json
-echo '}' >> delete.json
-aws s3api delete-objects --bucket "$BUCKET_NAME" --delete file://delete.json
-rm delete.json
+```powershell
+# Open the script file in editor
+code ./PowerShellScripts/S3Script.ps1
 ```
 
----
+### 3.3 Add the Following Script Content
 
-## 🛠️ Step 5: Additional Utility Scripts
+```powershell
+# Import AWS PowerShell Module
+Import-Module AWSPowerShell.NetCore
 
-### 5.1 `getnewestbucket.sh`
+# Set AWS Region
+$region = "us-east-1"
 
-```bash
-#!/usr/bin/env bash
-aws s3api list-buckets --query 'Buckets | sort_by(@, &CreationDate) | [-1:].Name' --output text
-```
+# Prompt for S3 Bucket Name
+$bucketName = Read-Host -Prompt 'Enter the S3 bucket name'
 
-### 5.2 `list_buckets.sh`
+# Function to check if the bucket exists
+function BucketExists {
+    param ($bucketName)
+    try {
+        Get-S3Bucket -BucketName $bucketName -ErrorAction Stop
+        return $true
+    } catch {
+        return $false
+    }
+}
 
-```bash
-#!/usr/bin/env bash
-aws s3 ls
-```
+# Create S3 Bucket if it doesn't exist
+if (-Not (BucketExists -bucketName $bucketName)) {
+    New-S3Bucket -BucketName $bucketName -Region $region
+    Write-Host "Bucket $bucketName created."
+} else {
+    Write-Host "Bucket $bucketName already exists."
+}
 
----
+# Create a sample file
+$fileName = "sample.txt"
+$fileContent = "Hello, S3!"
+Set-Content -Path $fileName -Value $fileContent
 
-## 🚀 Step 6: Running the Scripts
+# Upload the file to the S3 bucket
+Write-S3Object -BucketName $bucketName -File $fileName -Key $fileName
+Write-Host "File $fileName uploaded to bucket $bucketName."
 
-Make sure you're in the `S3/bash-scripts` directory.
-
-```bash
-# 6.1 Generate random files
-./generate_files.sh
-
-# 6.2 Create a new bucket
-./create_bucket.sh my-new-bucket-20250408 us-east-1
-
-# 6.3 Sync files to bucket
-./sync_files.sh my-new-bucket-20250408 files
-
-# 6.4 List objects in bucket
-./list_objects.sh my-new-bucket-20250408
-
-# 6.5 Delete all objects in bucket
-./delete_objects.sh my-new-bucket-20250408
-
-# 6.6 Delete the bucket
-./delete_bucket.sh my-new-bucket-20250408
+# Clean up local file
+Remove-Item -Path $fileName
 ```
 
 ---
 
-## ✅ Conclusion
+## 🚀 Step 4: Execute the PowerShell Script
 
-This lab demonstrates how Bash scripting can powerfully automate AWS S3 operations. By mastering these scripts, you'll be equipped to manage cloud storage efficiently — a critical skill for DevOps and Cloud Engineers.
+### 4.1 Run the Script
 
-Happy Scripting! ⚡
+```powershell
+# Navigate to the script directory
+cd PowerShellScripts
+
+# Execute the script
+./S3Script.ps1
+```
+
+### 4.2 Follow the Prompt
+
+Enter the desired S3 bucket name when prompted.
+
+---
+
+## ✅ Step 5: Verify S3 Bucket and Object
+
+### 5.1 Check AWS S3 Console
+
+- Visit the [AWS S3 Console](https://s3.console.aws.amazon.com/s3/)
+- Verify that:
+  - The bucket is created
+  - The `sample.txt` file is uploaded
+
+---
+
+## 🏁 Conclusion
+
+You have successfully:
+- Installed PowerShell in Gitpod
+- Configured AWS tools
+- Created and executed a PowerShell script to automate S3 bucket and file operations
+
+This hands-on lab is foundational for automating AWS tasks with PowerShell in modern DevOps workflows.
