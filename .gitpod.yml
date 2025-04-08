@@ -9,7 +9,7 @@ tasks:
       sudo apt-get update
       sudo apt-get install -y wget apt-transport-https software-properties-common
       wget -q "https://packages.microsoft.com/keys/microsoft.asc" -O- | sudo apt-key add -
-      sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+      sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)" -y
       sudo apt-get update
       sudo apt-get install -y powershell
   - name: aws-cli
