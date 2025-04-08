@@ -43,7 +43,7 @@ chmod u+x *.sh
 ### 2.1 `create_bucket.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 if [ -z "$1" ]; then
     echo "No bucket name provided. Usage: $0 bucket-name"
@@ -51,13 +51,19 @@ if [ -z "$1" ]; then
 fi
 BUCKET_NAME=$1
 REGION=${2:-us-east-1}
-aws s3api create-bucket --bucket "$BUCKET_NAME" --create-bucket-configuration LocationConstraint="$REGION"
+
+if [ "$REGION" == "us-east-1" ]; then
+    aws s3api create-bucket --bucket "$BUCKET_NAME"
+else
+    aws s3api create-bucket --bucket "$BUCKET_NAME" \
+    --create-bucket-configuration LocationConstraint="$REGION"
+fi
 ```
 
 ### 2.2 `delete_bucket.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 if [ -z "$1" ]; then
     echo "No bucket name provided. Usage: $0 bucket-name"
@@ -90,7 +96,7 @@ done
 ### 3.2 `sync_files.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 if [ -z "$1" ]; then
     echo "No bucket name provided. Usage: $0 bucket-name"
@@ -108,7 +114,7 @@ aws s3 sync ./temp s3://$BUCKET_NAME/$FILE_PREFIX
 ### 4.1 `list_objects.sh`
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 if [ -z "$1" ]; then
     echo "No bucket name provided. Usage: $0 bucket-name"
